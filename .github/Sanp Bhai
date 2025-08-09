@@ -1,0 +1,46 @@
+name: Android APK (Debug)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Install Gradle (so we can generate a wrapper if your repo doesn't have one)
+      - name: Install Gradle 8.2.1
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.2.1-bin.zip -o gradle.zip
+          unzip -q gradle.zip -d $HOME/gradle
+          echo "$HOME/gradle/gradle-8.2.1/bin" >> $GITHUB_PATH
+          gradle -v
+
+      # If there is no wrapper, create one
+      - name: Ensure Gradle wrapper
+        run: |
+          if [ ! -f gradlew ]; then
+            gradle wrapper --gradle-version 8.2.1
+            chmod +x gradlew
+          fi
+          ./gradlew --version
+
+      # Build the debug APK
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug
+
+      # Upload the APK as a build artifact
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
